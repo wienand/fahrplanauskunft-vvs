@@ -53,6 +53,8 @@ def getConnection(source='Am Kriegsbergturm', target='Hauptbahnhof', time=None, 
                 dateTime = leg['points'][0]['dateTime']
                 departureTime = datetime.datetime.strptime(dateTime.get('rtDate', dateTime['date']) + ' ' + dateTime.get('rtTime', dateTime['time']), '%d.%m.%Y %H:%M')
                 minutesTillDeparture = (departureTime - now).total_seconds() / 60
+                if runsAtHeroku:
+                    minutesTillDeparture -= 60
                 if minutesTillDeparture < 0.5 or minutesTillDeparture > 60:
                     tripText += ' mit %s in Richtung %s ab %s Uhr bis %s' % (leg['mode']['name'], leg['mode']['destination'].split(' (')[0], dateTime.get('rtTime', dateTime['time']), leg['points'][-1]['name'])
                 elif minutesTillDeparture > 0.5:
