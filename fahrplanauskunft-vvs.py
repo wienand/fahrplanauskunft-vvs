@@ -2,8 +2,8 @@
 import collections
 import datetime
 import json
-import urllib2
-import pprint
+import os
+import urllib
 
 from flask import Flask, request
 
@@ -25,7 +25,7 @@ def getDepartures(stop='Am Kriegsbergturm', time=None, date=None):
         url += '&itdTime=%s' % time.replace(':', '')
     if date:
         url += '&itdDate=%s' % date.replace('-', '')
-    response = urllib2.urlopen(url)
+    response = urllib.urlopen(url)
     response = json.loads(response.read().decode('latin1'))
     departures = collections.defaultdict(list)
     for departure in response['departureList'] or []:
@@ -72,4 +72,5 @@ def getDepartures(stop='Am Kriegsbergturm', time=None, date=None):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(port=port, debug=port == 5000)
