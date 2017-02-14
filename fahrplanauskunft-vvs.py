@@ -7,6 +7,8 @@ import urllib
 
 from flask import Flask, request
 
+port = int(os.environ.get("PORT", 5000))
+runsAtHeroku = port != 5000
 app = Flask(__name__)
 
 
@@ -38,12 +40,14 @@ def getDepartures(stop='Am Kriegsbergturm', time=None, date=None):
         for departure in departureList:
             departureTime = departure.get('realDateTime', departure['dateTime'])
             departureTime = {key: int(departureTime[key]) for key in ('hour', 'month', 'year', 'day', 'minute')}
-            minutesTillDepartue = (datetime.datetime(**departureTime) - now).total_seconds() / 60
-            if minutesTillDepartue < 0 or minutesTillDepartue > 60:
+            minutesTillDeparture = (datetime.datetime(**departureTime) - now).total_seconds() / 60
+            if runsAtHeroku:
+                minutesTillDeparture -= 60
+            if minutesTillDeparture < 0.5 or minutesTillDeparture > 60:
                 times += ['%d:%02d' % (departureTime['hour'], departureTime['minute'])]
-            if minutesTillDepartue > 0.5:
-                minutes += ['%d' % minutesTillDepartue]
-            if len(minutes) > 2:
+            elif minutesTillDeparture > 0.5:
+                minutes += ['%d' % minutesTillDeparture]
+            if len(minutes) + len(times) > 2:
                 break
         if len(minutes) > 1:
             minutes = ', '.join(minutes[:-1]) + ' und ' + minutes[-1]
@@ -53,10 +57,14 @@ def getDepartures(stop='Am Kriegsbergturm', time=None, date=None):
             times = ', '.join(times[:-1]) + ' und ' + times[-1]
         else:
             times = ''.join(times)
+        part = '%s %s Richtung %s ' % (name, tag, direction)
         if minutes:
-            parts += ["%s %s Richtung %s in %s Minuten" % (name, tag, direction, minutes)]
-        else:
-            parts += ["%s %s Richtung %s um %s Uhr" % (name, tag, direction, times)]
+            part += "in %s Minuten" % minutes
+        if times:
+            if minutes:
+                part += ' und '
+            part += "um %s Uhr" % times
+        parts.append(part)
     result = {
         "version"          : "1.0",
         "sessionAttributes": {},
@@ -72,5 +80,7 @@ def getDepartures(stop='Am Kriegsbergturm', time=None, date=None):
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=port == 5000)
+    if runsAtHeroku:
+        app.run(host='0.0.0.0', port=port)
+    else:
+        app.run(debug=True)
